@@ -1,0 +1,120 @@
+.data
+    scores:     .word 2, 5, 8, 9, 3, 7, 10, 6, 4, 8
+    n_scores:   .word 10
+
+    hist:       .word 0, 0, 0, 0
+
+    label_g:    .asciiz "g"
+    label_colon: .asciiz ": "
+    char_bar:   .asciiz "|"
+    newline:    .asciiz "\n"
+
+.text
+.globl main
+
+main:
+    la   $a0, scores
+    lw   $a1, n_scores
+    la   $a2, hist
+    jal  calc_histogram
+
+    la   $a0, hist
+    li   $a1, 4
+    jal  draw_hist
+
+    li   $v0, 10
+    syscall
+
+calc_histogram:
+    li   $t0, 0
+    move $t1, $a0
+    move $t2, $a2
+
+ch_loop:
+    beq  $t0, $a1, ch_done
+    
+    sll  $t3, $t0, 2
+    add  $t3, $t1, $t3
+    lw   $t4, 0($t3)
+
+    blt  $t4, 3, inc_g0
+    blt  $t4, 5, inc_g1
+    blt  $t4, 8, inc_g2
+    j    inc_g3
+
+inc_g0:
+    lw   $t5, 0($t2)
+    addi $t5, $t5, 1
+    sw   $t5, 0($t2)
+    j    ch_next
+
+inc_g1:
+    lw   $t5, 4($t2)
+    addi $t5, $t5, 1
+    sw   $t5, 4($t2)
+    j    ch_next
+
+inc_g2:
+    lw   $t5, 8($t2)
+    addi $t5, $t5, 1
+    sw   $t5, 8($t2)
+    j    ch_next
+
+inc_g3:
+    lw   $t5, 12($t2)
+    addi $t5, $t5, 1
+    sw   $t5, 12($t2)
+
+ch_next:
+    addi $t0, $t0, 1
+    j    ch_loop
+
+ch_done:
+    jr   $ra
+
+draw_hist:
+    move $t0, $a0
+    move $t1, $a1
+    li   $t2, 0
+
+dh_loop_group:
+    beq  $t2, $t1, dh_done
+
+    li   $v0, 4
+    la   $a0, label_g
+    syscall
+
+    li   $v0, 1
+    move $a0, $t2
+    syscall
+
+    li   $v0, 4
+    la   $a0, label_colon
+    syscall
+
+    sll  $t3, $t2, 2
+    add  $t3, $t0, $t3
+    lw   $t4, 0($t3)
+
+    li   $t5, 0
+
+dh_loop_bar:
+    beq  $t5, $t4, dh_end_bar
+
+    li   $v0, 4
+    la   $a0, char_bar
+    syscall
+
+    addi $t5, $t5, 1
+    j    dh_loop_bar
+
+dh_end_bar:
+    li   $v0, 4
+    la   $a0, newline
+    syscall
+
+    addi $t2, $t2, 1
+    j    dh_loop_group
+
+dh_done:
+    jr   $ra

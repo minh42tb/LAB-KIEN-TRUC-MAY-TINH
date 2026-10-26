@@ -1,0 +1,82 @@
+.data
+    str_P: .asciiz "(([{(([{()})]}]]"
+
+.text
+.globl main
+
+main:
+    la   $a0, str_P
+    jal  check_brackets
+    
+    li   $v0, 10
+    syscall
+
+check_brackets:
+    move $t0, $a0
+    li   $t1, 0
+    move $t2, $sp
+
+cb_loop:
+    lbu  $t3, 0($t0)
+    beq  $t3, $zero, cb_end_string
+
+    addi $t1, $t1, 1
+
+    beq  $t3, 40, cb_push
+    beq  $t3, 91, cb_push
+    beq  $t3, 123, cb_push
+
+    beq  $t3, 41, cb_check_close
+    beq  $t3, 93, cb_check_close
+    beq  $t3, 125, cb_check_close
+
+    j    cb_next
+
+cb_push:
+    addi $sp, $sp, -4
+    sw   $t3, 0($sp)
+    j    cb_next
+
+cb_check_close:
+    beq  $sp, $t2, err_empty_stack
+
+    lw   $t4, 0($sp)
+    addi $sp, $sp, 4
+
+    sub  $t5, $t3, $t4
+    li   $t6, 1
+    beq  $t5, $t6, cb_next
+    li   $t6, 2
+    beq  $t5, $t6, cb_next
+
+    j    err_mismatch
+
+cb_next:
+    addi $t0, $t0, 1
+    j    cb_loop
+
+cb_end_string:
+    bne  $sp, $t2, err_leftover
+    
+    move $sp, $t2
+    li   $v0, 0
+    li   $v1, 0
+    jr   $ra
+
+err_mismatch:
+    move $sp, $t2
+    move $v0, $t1
+    li   $v1, 1
+    jr   $ra
+
+err_empty_stack:
+    move $sp, $t2
+    move $v0, $t1
+    li   $v1, 2
+    jr   $ra
+
+err_leftover:
+    move $sp, $t2
+    addi $v0, $t1, 1
+    li   $v1, 3
+    jr   $ra
